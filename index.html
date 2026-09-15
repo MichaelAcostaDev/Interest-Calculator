@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A clear, visual calculator for understanding simple and compound interest." />
+    <title>Interest Calculator — Understand your growth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'], serif: ['DM Serif Display', 'Georgia', 'serif'] } } }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+      :root { color-scheme: light; }
+      body { background: #f6f7f5; color: #18201c; overflow-x: hidden; }
+      input, select, button { font: inherit; }
+      input:focus, select:focus, button:focus-visible { outline: 3px solid rgba(62, 112, 83, .18); outline-offset: 2px; }
+      .canvas-wrap canvas { width: 100%; height: 300px; display: block; }
+      .metric-value { transition: opacity .18s ease, transform .18s ease; }
+      .metric-value.is-updating { opacity: .45; transform: translateY(3px); }
+      .soft-rule { border-color: #dde3dd; }
+      .canvas-wrap { background: #fbfcfb; }
+      .chart-tooltip { pointer-events: none; position: absolute; z-index: 5; min-width: 158px; transform: translate(-50%, calc(-100% - 14px)); border: 1px solid #d9e0d9; border-radius: 10px; background: rgba(255,255,255,.97); padding: 10px 12px; box-shadow: 0 12px 30px rgba(24,32,28,.12); font-size: 12px; opacity: 0; transition: opacity .15s ease; }
+      .chart-tooltip.visible { opacity: 1; }
+      .chart-shell { position: relative; min-width: 0; }
+      .intro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      @media (max-width: 360px) { .intro-grid { grid-template-columns: 1fr; } .chart-tooltip { min-width: 124px; max-width: calc(100vw - 28px); padding: 8px 9px; } .canvas-wrap canvas { height: 150px; } }
+      @media (min-width: 361px) and (max-width: 400px) { .intro-grid { grid-template-columns: 1fr; } .chart-tooltip { min-width: 128px; max-width: calc(100vw - 28px); padding: 8px 9px; } .canvas-wrap canvas { height: 160px; } }
+      @media (min-width: 401px) and (max-width: 640px) { .intro-grid { grid-template-columns: 1fr; } .chart-tooltip { min-width: 132px; max-width: calc(100vw - 32px); padding: 8px 10px; } .canvas-wrap canvas { height: 170px; } }
+      @media (min-width: 641px) and (max-width: 1024px) { .canvas-wrap canvas { height: 280px; } }
+    </style>
+  </head>
+  <body class="min-h-screen antialiased">
+    <main class="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
+      <header class="mb-10 max-w-2xl sm:mb-14">
+        <p id="eyebrow" class="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#3e7053]">Personal finance, made clear</p>
+        <h1 class="font-serif text-5xl leading-[.98] tracking-[-.035em] text-[#18201c] sm:text-7xl">Interest<br class="sm:hidden" /> Calculator</h1>
+        <p id="subtitle" class="mt-6 max-w-lg text-base leading-7 text-[#65706a] sm:text-lg">Calculate, compare and understand how your money grows over time.</p>
+      </header>
+
+      <section class="intro-grid mb-8 grid gap-3" aria-label="Introduction">
+        <article class="rounded-xl border border-[#e1e7e1] bg-white p-5"><p id="simple-intro-title" class="mb-2 text-sm font-semibold text-[#18201c]">Simple interest</p><p id="simple-intro-copy" class="text-sm leading-6 text-[#65706a]">Interest is calculated only on the original amount invested.</p></article>
+        <article class="rounded-xl border border-[#e1e7e1] bg-white p-5"><p id="compound-intro-title" class="mb-2 text-sm font-semibold text-[#18201c]">Compound interest</p><p id="compound-intro-copy" class="text-sm leading-6 text-[#65706a]">Interest is calculated on your investment and the interest accumulated over time.</p></article>
+      </section>
+
+      <nav class="mb-8 inline-flex rounded-full border border-[#d9e0d9] bg-white p-1" aria-label="Interest type">
+        <button id="simple-tab" type="button" data-mode="simple" aria-pressed="true" class="mode-tab rounded-full bg-[#18201c] px-5 py-2.5 text-sm font-semibold text-white transition">Simple interest</button>
+        <button id="compound-tab" type="button" data-mode="compound" aria-pressed="false" class="mode-tab rounded-full px-5 py-2.5 text-sm font-semibold text-[#65706a] transition hover:text-[#18201c]">Compound interest</button>
+      </nav>
+
+      <section class="grid gap-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)]" aria-label="Calculator">
+        <form id="investment-form" class="rounded-2xl border soft-rule bg-white p-6 sm:p-8">
+          <div class="mb-8 flex items-start justify-between gap-4">
+            <div><p id="inputs-eyebrow" class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#89958d]">01 / Inputs</p><h2 class="text-2xl font-semibold tracking-tight">Your investment</h2></div>
+            <span id="live-label" class="rounded-full bg-[#edf3ed] px-3 py-1 text-xs font-semibold text-[#3e7053]">Live</span>
+          </div>
+          <div class="space-y-5">
+            <label class="block"><span class="mb-2 block text-sm font-medium text-[#4f5b54]">Initial investment</span><div class="relative"><span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#89958d]">$</span><input id="principal" class="w-full rounded-xl border border-[#d9e0d9] bg-[#fbfcfb] py-3.5 pl-9 pr-4 text-lg font-semibold text-[#18201c] transition placeholder:text-[#a8b1ab] hover:border-[#b9c6bb]" type="number" min="0" step="100" placeholder="10,000" /></div><span class="field-error mt-1 block min-h-4 text-xs text-[#b34d42]"></span></label>
+            <label class="block"><span class="mb-2 block text-sm font-medium text-[#4f5b54]">Interest rate <span class="text-[#9aa49e]">/ annual</span></span><div class="relative"><input id="rate" class="w-full rounded-xl border border-[#d9e0d9] bg-[#fbfcfb] px-4 py-3.5 pr-10 text-lg font-semibold text-[#18201c] transition placeholder:text-[#a8b1ab] hover:border-[#b9c6bb]" type="number" min="0" step="0.1" placeholder="5" /><span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#89958d]">%</span></div><span class="field-error mt-1 block min-h-4 text-xs text-[#b34d42]"></span></label>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_132px]"><label class="block"><span class="mb-2 block text-sm font-medium text-[#4f5b54]">Time</span><input id="time" class="w-full rounded-xl border border-[#d9e0d9] bg-[#fbfcfb] px-4 py-3.5 text-lg font-semibold text-[#18201c] transition placeholder:text-[#a8b1ab] hover:border-[#b9c6bb]" type="number" min="1" step="1" placeholder="10" /><span class="field-error mt-1 block min-h-4 text-xs text-[#b34d42]"></span></label><label class="block"><span class="mb-2 block text-sm font-medium text-[#4f5b54]">Unit</span><select id="time-unit" class="w-full appearance-none rounded-xl border border-[#d9e0d9] bg-[#fbfcfb] px-3 py-3.5 text-sm font-semibold text-[#18201c]"><option value="years">Years</option><option value="months">Months</option></select></label></div>
+            <label id="frequency-field" class="block"><span class="mb-2 block text-sm font-medium text-[#4f5b54]">Compounding frequency</span><select id="frequency" class="w-full rounded-xl border border-[#d9e0d9] bg-[#fbfcfb] px-4 py-3.5 font-semibold text-[#18201c]"><option value="1">Annually</option><option value="2">Semi-annually</option><option value="4">Quarterly</option><option value="12" selected>Monthly</option><option value="365">Daily</option></select></label>
+          </div>
+          <p id="form-status" class="mt-7 text-xs leading-5 text-[#89958d]">Change any value to see the projection update instantly.</p>
+        </form>
+
+        <section id="results-card" class="hidden flex flex-col justify-between rounded-2xl bg-[#18201c] p-6 text-[#f5f7f4] sm:p-8" aria-live="polite">
+          <div><p id="projection-eyebrow" class="mb-8 text-xs font-semibold uppercase tracking-[0.18em] text-[#a7b9ab]">02 / Projection</p><p id="future-label" class="text-sm text-[#a7b9ab]">Future value</p><div id="future-value" class="metric-value mt-2 break-words text-5xl font-semibold tracking-[-.05em] sm:text-7xl">$0.00</div></div>
+          <div class="mt-10"><div class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[#39453d] pb-6"><div><p id="interest-label" class="text-sm text-[#a7b9ab]">Interest earned</p><p id="interest-earned" class="metric-value mt-1 text-2xl font-semibold text-[#d9eadb]">+$0.00</p></div><div class="text-right"><p id="growth-label" class="text-sm text-[#a7b9ab]">Growth</p><p id="growth-rate" class="metric-value mt-1 text-2xl font-semibold text-[#d9eadb]">+0.00%</p></div></div><div class="flex items-center justify-between text-sm"><span id="initial-label" class="text-[#a7b9ab]">Initial investment</span><span id="initial-display" class="font-semibold">$0.00</span></div></div>
+        </section>
+      </section>
+
+      <section id="secondary-results" class="mt-6 hidden grid gap-6 lg:grid-cols-[.72fr_1.28fr]">
+        <article class="rounded-2xl border soft-rule bg-white p-6 sm:p-8"><p id="formula-eyebrow" class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#89958d]">A clearer picture</p><h2 class="text-2xl font-semibold tracking-tight">How is this calculated?</h2><div id="formula" class="my-8 border-y border-[#e2e7e2] py-6 font-mono text-lg leading-9 text-[#3e7053]">I = P × r × t<br />A = P(1 + rt)</div><dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-[#65706a]"><div><dt class="font-semibold text-[#18201c]">P</dt><dd id="formula-p">Initial principal</dd></div><div><dt class="font-semibold text-[#18201c]">r</dt><dd id="formula-r">Interest rate</dd></div><div><dt class="font-semibold text-[#18201c]">t</dt><dd id="formula-t">Time in years</dd></div><div id="n-definition"><dt class="font-semibold text-[#18201c]">n</dt><dd id="formula-n">Compounding periods</dd></div><div><dt class="font-semibold text-[#18201c]">A</dt><dd id="formula-a">Final amount</dd></div></dl></article>
+        <article class="rounded-2xl border soft-rule bg-white p-4 sm:p-8"><div class="mb-5 flex flex-col justify-between gap-3 sm:mb-7 sm:flex-row sm:items-start"><div><p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#89958d]">03 / Visual</p><h2 id="chart-title" class="text-2xl font-semibold tracking-tight">Growth visualization</h2></div><select id="chart-view" class="w-full rounded-lg border border-[#d9e0d9] bg-[#fbfcfb] px-3 py-2 text-sm font-semibold text-[#3e7053] sm:w-auto" aria-label="Choose growth visualization"><option value="growth">Growth over time</option><option value="interest">Interest earned</option><option value="comparison">Simple vs compound</option></select></div><div class="chart-shell rounded-xl bg-[#fbfcfb] px-0 py-2 sm:px-2 sm:py-3"><canvas id="growth-chart" aria-label="Growth chart"></canvas><div id="chart-tooltip" class="chart-tooltip"></div></div><div class="mt-2 flex justify-between text-xs text-[#89958d] sm:mt-3"><span id="chart-x-label">Time</span><span id="chart-y-label">Balance</span></div><div id="chart-legend" class="mt-3 flex flex-wrap gap-3 text-xs text-[#65706a] sm:mt-4 sm:gap-4"></div></article>
+      </section>
+
+      <section id="growth-breakdown" class="mt-6 hidden rounded-2xl border soft-rule bg-white p-6 sm:p-8"><div class="mb-7 flex items-end justify-between gap-4"><div><p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#89958d]">04 / Detail</p><h2 class="text-2xl font-semibold tracking-tight">Growth breakdown</h2></div><p id="table-summary" class="hidden text-right text-sm text-[#89958d] sm:block"></p></div><div class="overflow-x-auto"><table class="w-full min-w-[620px] border-collapse text-left text-sm"><thead><tr class="border-b border-[#dfe5df] text-xs uppercase tracking-[0.12em] text-[#89958d]"><th class="pb-4 font-semibold">Period</th><th class="pb-4 text-right font-semibold">Starting balance</th><th class="pb-4 text-right font-semibold">Interest</th><th class="pb-4 text-right font-semibold">Ending balance</th></tr></thead><tbody id="growth-table" class="divide-y divide-[#edf0ed]"></tbody></table></div></section>
+      <footer class="mt-10 flex flex-col justify-between gap-4 border-t border-[#dfe5df] pt-5 text-xs text-[#89958d] sm:flex-row sm:items-center"><span>© 2026 Interest Calculator</span><span id="footer-note">For educational planning — not financial advice.</span><div class="flex items-center gap-4"><span id="built-by">Built by Michael Acosta</span><a class="transition hover:text-[#3e7053]" href="https://github.com/MichaelAcostaDev" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><i class="fa-brands fa-github text-base" aria-hidden="true"></i></a><a class="transition hover:text-[#3e7053]" href="https://www.linkedin.com/in/michael-acosta-dev/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin text-base" aria-hidden="true"></i></a></div></footer>
+    </main>
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>
