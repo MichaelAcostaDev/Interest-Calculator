@@ -1,0 +1,12 @@
+{
+  "name": "interest-calculator",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "check": "tsc --project tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
