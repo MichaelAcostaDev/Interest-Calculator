@@ -337,20 +337,44 @@
                 Growth visualization
               </h2>
             </div>
-            <select
-              id="chart-view"
-              class="w-full rounded-lg border border-[#d9e0d9] bg-[#fbfcfb] px-3 py-2 text-sm font-semibold text-[#3e7053] sm:w-auto"
-              aria-label="Choose growth visualization"
-            >
-              <option value="growth">Growth over time</option>
-              <option value="interest">Interest earned</option>
-              <option value="comparison">Simple vs compound</option>
-            </select>
+            <div class="chart-controls">
+              <label>
+                <span id="chart-data-label" class="sr-only">Choose data</span>
+                <select
+                  id="chart-view"
+                  class="w-full rounded-lg border border-[#d9e0d9] bg-[#fbfcfb] px-3 py-2 text-sm font-semibold text-[#3e7053] sm:w-auto"
+                  aria-label="Choose growth visualization"
+                >
+                  <option value="growth">Growth over time</option>
+                  <option value="interest">Interest earned</option>
+                  <option value="comparison">Simple vs compound</option>
+                </select>
+              </label>
+              <label>
+                <span id="chart-type-label" class="sr-only"
+                  >Choose chart style</span
+                >
+                <select
+                  id="chart-type"
+                  class="w-full rounded-lg border border-[#d9e0d9] bg-[#fbfcfb] px-3 py-2 text-sm font-semibold text-[#3e7053] sm:w-auto"
+                  aria-label="Choose chart style"
+                >
+                  <option value="line">Line</option>
+                  <option value="area">Area</option>
+                  <option value="bar">Bars</option>
+                </select>
+              </label>
+            </div>
           </div>
           <div
             class="chart-shell rounded-xl bg-[#fbfcfb] px-0 py-2 sm:px-2 sm:py-3"
           >
-            <canvas id="growth-chart" aria-label="Growth chart"></canvas>
+            <canvas
+              id="growth-chart"
+              tabindex="0"
+              role="img"
+              aria-label="Growth chart"
+            ></canvas>
             <div id="chart-tooltip" class="chart-tooltip"></div>
           </div>
           <div class="mt-2 flex justify-between text-xs text-[#89958d] sm:mt-3">

@@ -12,11 +12,10 @@ Instead of only returning a final number, the calculator lets you **calculate, c
 * 📈 **Compound Interest Calculator**
 * 🔄 Switch between simple and compound interest
 * 🧮 Automatic calculations in real time
-* 📊 Interactive growth charts
+* 📊 Interactive line, area and bar charts
 * 📋 Dynamic growth table
 * 💡 Short explanations of simple and compound interest
 * 📐 Displays the formula used for each calculation
-* 🌓 Light and Dark Mode
 * 🌐 Automatic English / Spanish language detection
 * 📱 Fully responsive design
 * 🖱️ Interactive chart tooltips
@@ -93,7 +92,9 @@ Compares both methods using the same initial values.
 
 The chart makes the difference between the two calculation methods easier to understand, especially over longer periods.
 
-Charts are responsive and include interactive tooltips showing information such as the period, balance and interest earned.
+Each view can be displayed as a line, area or bar chart. Charts resize with their
+container, animate when values change, and include interactive period tooltips.
+The animation respects the operating system's reduced-motion preference.
 
 ## 📋 Growth Table
 
@@ -177,7 +178,15 @@ Open the project:
 cd Interest-Calculator
 ```
 
-Because the application uses TypeScript, compile the TypeScript file with your preferred TypeScript setup and serve the project from a local development server.
+Install the TypeScript compiler and generate the browser JavaScript:
+
+```bash
+npm install
+npm run build
+```
+
+Then serve the project root with any static web server and open the local URL.
+`npm run check` runs TypeScript checks without changing the generated files.
 
 The main structure is:
 
@@ -196,6 +205,7 @@ The project was intentionally built without a frontend framework.
 * **HTML5** — Semantic page structure and accessible form elements
 * **Tailwind CSS** — Responsive layout and UI styling
 * **TypeScript** — Calculations, application logic, state and interactions
+* **TypeScript compiler** — Strict type checking and browser JavaScript output
 * **Font Awesome** — Interface icons
 * **Intl API** — Currency, percentage and locale formatting
 * **Browser APIs** — Theme and language detection

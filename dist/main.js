@@ -1,37 +1,606 @@
-
-const $ = (selector) => document.querySelector(selector);
-const money = new Intl.NumberFormat(navigator.language || 'en-US', { style: 'currency', currency: 'USD' });
-const percent = new Intl.NumberFormat(navigator.language || 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const lang = (navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'en';
-let mode = 'simple'; let currentInput; let currentCalculation;
-const translations = {
-  en: { simple: 'Simple interest', compound: 'Compound interest', investment: 'Your investment', initial: 'Initial investment', rate: 'Interest rate', annual: '/ annual', time: 'Time', unit: 'Unit', years: 'Years', months: 'Months', frequency: 'Compounding frequency', hint: 'Change any value to see the projection update instantly.', future: 'Future value', earned: 'Interest earned', growth: 'Growth', picture: 'A clearer picture', calculated: 'How is this calculated?', visual: 'Growth visualization', growthTime: 'Growth over time', interestView: 'Interest earned', comparison: 'Simple vs compound', balance: 'Balance', detail: 'Growth breakdown', period: 'Period', starting: 'Starting balance', ending: 'Ending balance', tooltipBalance: 'Balance', tooltipInterest: 'Interest earned', simpleLegend: 'Simple interest', compoundLegend: 'Compound interest', year: 'Year', month: 'Month', periods: 'periods', educational: 'For educational planning — not financial advice.', built: 'Built by Michael Acosta' },
-  es: { simple: 'Interés simple', compound: 'Interés compuesto', investment: 'Tu inversión', initial: 'Inversión inicial', rate: 'Tasa de interés', annual: '/ anual', time: 'Tiempo', unit: 'Unidad', years: 'Años', months: 'Meses', frequency: 'Frecuencia de capitalización', hint: 'Cambia cualquier valor para actualizar la proyección al instante.', future: 'Valor futuro', earned: 'Interés ganado', growth: 'Crecimiento', picture: 'Una imagen más clara', calculated: '¿Cómo se calcula?', visual: 'Visualización del crecimiento', growthTime: 'Crecimiento en el tiempo', interestView: 'Interés ganado', comparison: 'Simple vs compuesto', balance: 'Saldo', detail: 'Desglose del crecimiento', period: 'Periodo', starting: 'Saldo inicial', ending: 'Saldo final', tooltipBalance: 'Saldo', tooltipInterest: 'Interés ganado', simpleLegend: 'Interés simple', compoundLegend: 'Interés compuesto', year: 'Año', month: 'Mes', periods: 'periodos', educational: 'Para planificación educativa — no es asesoría financiera.', built: 'Creado por Michael Acosta' }
+"use strict";
+const $ = (selector) => {
+    const element = document.querySelector(selector);
+    if (!element) {
+        throw new Error(`Required page element not found: ${selector}`);
+    }
+    return element;
 };
-const additions = { en: { eyebrow: 'Personal finance, made clear', subtitle: 'Calculate, compare and understand how your money grows over time.', simpleIntroTitle: 'Simple interest', simpleIntroCopy: 'Simple interest is calculated only on the original principal.', compoundIntroTitle: 'Compound interest', compoundIntroCopy: 'Compound interest is calculated on the original principal plus the interest accumulated over time.', formulaP: 'Initial principal', formulaR: 'Interest rate', formulaT: 'Time in years', formulaN: 'Compounding periods', formulaA: 'Final amount', enterValues: 'Enter your values to see the projection.', invalid: 'Please enter valid, non-negative values.', inputs: 'Inputs', live: 'Live', projection: 'Projection' }, es: { eyebrow: 'Finanzas personales, explicado con claridad', subtitle: 'Calcula, compara y entiende cómo crece tu dinero con el tiempo.', simpleIntroTitle: 'Interés simple', simpleIntroCopy: 'El interés simple se calcula únicamente sobre el capital inicial.', compoundIntroTitle: 'Interés compuesto', compoundIntroCopy: 'El interés compuesto se calcula sobre el capital inicial más los intereses acumulados con el tiempo.', formulaP: 'Principal inicial', formulaR: 'Tasa de interés', formulaT: 'Tiempo en años', formulaN: 'Periodos de capitalización', formulaA: 'Monto final', enterValues: 'Ingresa tus valores para ver la proyección.', invalid: 'Introduce valores válidos y no negativos.', inputs: 'Datos', live: 'En vivo', projection: 'Proyección' } };
-const t = (key) => translations[lang][key] || additions[lang][key] || key;
-function setText(selector, value) { const element = document.querySelector(selector); if (element) element.textContent = value; }
+const locale = navigator.language || 'en-US';
+const money = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'USD',
+});
+const percent = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+const lang = locale.toLowerCase().startsWith('es') ? 'es' : 'en';
+let mode = 'simple';
+let currentInput;
+let currentCalculation;
+let chartHoverPeriod = null;
+let chartAnimationFrame = 0;
+const translations = {
+    en: {
+        simple: 'Simple interest',
+        compound: 'Compound interest',
+        investment: 'Your investment',
+        initial: 'Initial investment',
+        rate: 'Interest rate',
+        annual: '/ annual',
+        time: 'Time',
+        unit: 'Unit',
+        years: 'Years',
+        months: 'Months',
+        frequency: 'Compounding frequency',
+        hint: 'Change any value to see the projection update instantly.',
+        future: 'Future value',
+        earned: 'Interest earned',
+        growth: 'Growth',
+        picture: 'A clearer picture',
+        calculated: 'How is this calculated?',
+        visual: 'Growth visualization',
+        growthTime: 'Growth over time',
+        interestView: 'Interest earned',
+        comparison: 'Simple vs compound',
+        balance: 'Balance',
+        detail: 'Growth breakdown',
+        period: 'Period',
+        starting: 'Starting balance',
+        ending: 'Ending balance',
+        tooltipBalance: 'Balance',
+        tooltipInterest: 'Interest earned',
+        simpleLegend: 'Simple interest',
+        compoundLegend: 'Compound interest',
+        year: 'Year',
+        month: 'Month',
+        periods: 'periods',
+        educational: 'For educational planning — not financial advice.',
+        built: 'Built by Michael Acosta',
+        eyebrow: 'Personal finance, made clear',
+        subtitle: 'Calculate, compare and understand how your money grows over time.',
+        simpleIntroTitle: 'Simple interest',
+        simpleIntroCopy: 'Simple interest is calculated only on the original principal.',
+        compoundIntroTitle: 'Compound interest',
+        compoundIntroCopy: 'Compound interest is calculated on the original principal plus the interest accumulated over time.',
+        formulaP: 'Initial principal',
+        formulaR: 'Interest rate',
+        formulaT: 'Time in years',
+        formulaN: 'Compounding periods',
+        formulaA: 'Final amount',
+        enterValues: 'Enter your values to see the projection.',
+        invalid: 'Please enter valid, non-negative values.',
+        inputs: 'Inputs',
+        live: 'Live',
+        projection: 'Projection',
+        chartType: 'Chart style',
+        chartData: 'Chart data',
+        line: 'Line',
+        area: 'Area',
+        bar: 'Bars',
+        balanceAxis: 'Balance',
+    },
+    es: {
+        simple: 'Interés simple',
+        compound: 'Interés compuesto',
+        investment: 'Tu inversión',
+        initial: 'Inversión inicial',
+        rate: 'Tasa de interés',
+        annual: '/ anual',
+        time: 'Tiempo',
+        unit: 'Unidad',
+        years: 'Años',
+        months: 'Meses',
+        frequency: 'Frecuencia de capitalización',
+        hint: 'Cambia cualquier valor para actualizar la proyección al instante.',
+        future: 'Valor futuro',
+        earned: 'Interés ganado',
+        growth: 'Crecimiento',
+        picture: 'Una imagen más clara',
+        calculated: '¿Cómo se calcula?',
+        visual: 'Visualización del crecimiento',
+        growthTime: 'Crecimiento en el tiempo',
+        interestView: 'Interés ganado',
+        comparison: 'Simple vs compuesto',
+        balance: 'Saldo',
+        detail: 'Desglose del crecimiento',
+        period: 'Periodo',
+        starting: 'Saldo inicial',
+        ending: 'Saldo final',
+        tooltipBalance: 'Saldo',
+        tooltipInterest: 'Interés ganado',
+        simpleLegend: 'Interés simple',
+        compoundLegend: 'Interés compuesto',
+        year: 'Año',
+        month: 'Mes',
+        periods: 'periodos',
+        educational: 'Para planificación educativa — no es asesoría financiera.',
+        built: 'Creado por Michael Acosta',
+        eyebrow: 'Finanzas personales, explicado con claridad',
+        subtitle: 'Calcula, compara y entiende cómo crece tu dinero con el tiempo.',
+        simpleIntroTitle: 'Interés simple',
+        simpleIntroCopy: 'El interés simple se calcula únicamente sobre el capital inicial.',
+        compoundIntroTitle: 'Interés compuesto',
+        compoundIntroCopy: 'El interés compuesto se calcula sobre el capital inicial más los intereses acumulados con el tiempo.',
+        formulaP: 'Principal inicial',
+        formulaR: 'Tasa de interés',
+        formulaT: 'Tiempo en años',
+        formulaN: 'Periodos de capitalización',
+        formulaA: 'Monto final',
+        enterValues: 'Ingresa tus valores para ver la proyección.',
+        invalid: 'Introduce valores válidos y no negativos.',
+        inputs: 'Datos',
+        live: 'En vivo',
+        projection: 'Proyección',
+        chartType: 'Estilo del gráfico',
+        chartData: 'Datos del gráfico',
+        line: 'Línea',
+        area: 'Área',
+        bar: 'Barras',
+        balanceAxis: 'Saldo',
+    },
+};
+const t = (key) => translations[lang][key] || key;
+function setText(selector, value) {
+    const element = document.querySelector(selector);
+    if (element)
+        element.textContent = value;
+}
 function applyTranslations() {
-  document.documentElement.lang = lang; document.title = lang === 'es' ? 'Calculadora de interés — Entiende tu crecimiento' : 'Interest Calculator — Understand your growth';
-  setText('#eyebrow', t('eyebrow')); setText('#subtitle', t('subtitle')); setText('#simple-tab', t('simple')); setText('#compound-tab', t('compound')); setText('#inputs-eyebrow', `01 / ${t('inputs')}`); setText('#live-label', t('live')); setText('#projection-eyebrow', `02 / ${t('projection')}`); setText('#future-label', t('future')); setText('#interest-label', t('earned')); setText('#growth-label', t('growth')); setText('#initial-label', t('initial')); setText('form h2', t('investment')); setText('#frequency-field span', t('frequency')); setText('#form-status', t('enterValues')); setText('#simple-intro-title', t('simpleIntroTitle')); setText('#simple-intro-copy', t('simpleIntroCopy')); setText('#compound-intro-title', t('compoundIntroTitle')); setText('#compound-intro-copy', t('compoundIntroCopy')); setText('#formula-eyebrow', t('picture')); setText('section article:first-child h2', t('calculated')); setText('#formula-p', t('formulaP')); setText('#formula-r', t('formulaR')); setText('#formula-t', t('formulaT')); setText('#formula-n', t('formulaN')); setText('#formula-a', t('formulaA')); setText('#chart-title', t('visual')); setText('section:last-of-type h2', t('detail')); setText('#footer-note', t('educational')); setText('#built-by', t('built')); $('#chart-view').setAttribute('aria-label', t('visual')); $('#growth-chart').setAttribute('aria-label', t('visual'));
-  const labels = document.querySelectorAll('#investment-form label > span:first-child'); [t('initial'), `${t('rate')} ${t('annual')}`, t('time'), t('unit')].forEach((value, i) => { if (labels[i]) labels[i].textContent = value; }); const unit = $('#time-unit'); unit.options[0].text = t('years'); unit.options[1].text = t('months');
-  const frequencies = lang === 'es' ? ['Anual', 'Semestral', 'Trimestral', 'Mensual', 'Diaria'] : ['Annually', 'Semi-annually', 'Quarterly', 'Monthly', 'Daily']; Array.from($('#frequency').options).forEach((option, i) => { option.text = frequencies[i]; }); const options = $('#chart-view').options; options[0].text = t('growthTime'); options[1].text = t('interestView'); options[2].text = t('comparison');
-  const headers = document.querySelectorAll('thead th'); [t('period'), t('starting'), t('earned'), t('ending')].forEach((value, i) => { if (headers[i]) headers[i].textContent = value; });
+    document.documentElement.lang = lang;
+    document.title =
+        lang === 'es'
+            ? 'Calculadora de interés — Entiende tu crecimiento'
+            : 'Interest Calculator — Understand your growth';
+    setText('#eyebrow', t('eyebrow'));
+    setText('#subtitle', t('subtitle'));
+    setText('#simple-tab', t('simple'));
+    setText('#compound-tab', t('compound'));
+    setText('#inputs-eyebrow', `01 / ${t('inputs')}`);
+    setText('#live-label', t('live'));
+    setText('#projection-eyebrow', `02 / ${t('projection')}`);
+    setText('#future-label', t('future'));
+    setText('#interest-label', t('earned'));
+    setText('#growth-label', t('growth'));
+    setText('#initial-label', t('initial'));
+    setText('form h2', t('investment'));
+    setText('#frequency-field span', t('frequency'));
+    setText('#form-status', t('enterValues'));
+    setText('#simple-intro-title', t('simpleIntroTitle'));
+    setText('#simple-intro-copy', t('simpleIntroCopy'));
+    setText('#compound-intro-title', t('compoundIntroTitle'));
+    setText('#compound-intro-copy', t('compoundIntroCopy'));
+    setText('#formula-eyebrow', t('picture'));
+    setText('section article:first-child h2', t('calculated'));
+    setText('#formula-p', t('formulaP'));
+    setText('#formula-r', t('formulaR'));
+    setText('#formula-t', t('formulaT'));
+    setText('#formula-n', t('formulaN'));
+    setText('#formula-a', t('formulaA'));
+    setText('#chart-title', t('visual'));
+    setText('section:last-of-type h2', t('detail'));
+    setText('#footer-note', t('educational'));
+    setText('#built-by', t('built'));
+    $('#chart-view').setAttribute('aria-label', t('chartData'));
+    $('#chart-type').setAttribute('aria-label', t('chartType'));
+    setText('#chart-data-label', t('chartData'));
+    setText('#chart-type-label', t('chartType'));
+    $('#growth-chart').setAttribute('aria-label', t('visual'));
+    const labels = document.querySelectorAll('#investment-form label > span:first-child');
+    [t('initial'), `${t('rate')} ${t('annual')}`, t('time'), t('unit')].forEach((value, index) => {
+        if (labels[index])
+            labels[index].textContent = value;
+    });
+    const unit = $('#time-unit');
+    unit.options[0].text = t('years');
+    unit.options[1].text = t('months');
+    const frequencies = lang === 'es'
+        ? ['Anual', 'Semestral', 'Trimestral', 'Mensual', 'Diaria']
+        : ['Annually', 'Semi-annually', 'Quarterly', 'Monthly', 'Daily'];
+    Array.from($('#frequency').options).forEach((option, index) => {
+        if (frequencies[index])
+            option.text = frequencies[index];
+    });
+    const views = $('#chart-view').options;
+    views[0].text = t('growthTime');
+    views[1].text = t('interestView');
+    views[2].text = t('comparison');
+    const chartTypes = $('#chart-type').options;
+    chartTypes[0].text = t('line');
+    chartTypes[1].text = t('area');
+    chartTypes[2].text = t('bar');
+    const headers = document.querySelectorAll('thead th');
+    [t('period'), t('starting'), t('earned'), t('ending')].forEach((value, index) => {
+        if (headers[index])
+            headers[index].textContent = value;
+    });
 }
-function readInput() { const principal = Number($('#principal').value) || 0; const rate = (Number($('#rate').value) || 0) / 100; const raw = Number($('#time').value) || 0; return { principal, rate, time: $('#time-unit').value === 'months' ? raw / 12 : raw, timeUnit: $('#time-unit').value, frequency: Number($('#frequency').value) || 1 }; }
-function periodCount(input) { return Math.max(1, Math.ceil(input.timeUnit === 'months' ? input.time * 12 : input.time)); }
-function calculate(input, compound) { const count = periodCount(input); const points = [{ period: 0, starting: input.principal, interest: 0, ending: input.principal }]; for (let p = 1; p <= count; p += 1) { const years = input.timeUnit === 'months' ? p / 12 : p; const ending = compound ? input.principal * Math.pow(1 + input.rate / input.frequency, input.frequency * Math.min(years, input.time)) : input.principal * (1 + input.rate * Math.min(years, input.time)); points.push({ period: p, starting: points[p - 1].ending, interest: ending - points[p - 1].ending, ending }); } const finalAmount = compound ? input.principal * Math.pow(1 + input.rate / input.frequency, input.frequency * input.time) : input.principal * (1 + input.rate * input.time); return { finalAmount, interest: finalAmount - input.principal, growth: input.principal ? (finalAmount / input.principal - 1) * 100 : 0, points }; }
-function formatCurrency(value) { return money.format(Number.isFinite(value) ? value : 0); }
-function formatAxisCurrency(value, compact) { if (!compact) return formatCurrency(value); const absolute = Math.abs(value); if (absolute >= 1000000) return `${value < 0 ? '-' : ''}${(absolute / 1000000).toFixed(1).replace('.0', '')}M`; if (absolute >= 1000) return `${value < 0 ? '-' : ''}${(absolute / 1000).toFixed(1).replace('.0', '')}K`; return formatCurrency(value).replace(/\.00(?=\D|$)/, ''); }
-function formatPercent(value) { return `${value >= 0 ? '+' : ''}${percent.format(value)}%`; }
-function drawChart(input, result) {
-  const canvas = $('#growth-chart'); const rect = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1; const compact = window.innerWidth <= 640; const h = window.innerWidth <= 360 ? 150 : window.innerWidth <= 400 ? 160 : compact ? 170 : window.innerWidth <= 1024 ? 280 : 300; canvas.width = rect.width * dpr; canvas.height = h * dpr; const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.scale(dpr, dpr); const w = rect.width, pad = compact ? { left: 40, right: 6, top: 8, bottom: 22 } : { left: 58, right: 16, top: 18, bottom: 34 }, view = $('#chart-view').value; const simple = calculate(input, false); const compound = calculate(input, true); const series = view === 'interest' ? [{ name: t('earned'), color: '#3e7053', values: result.points.map((point) => point.ending - input.principal) }] : view === 'comparison' ? [{ name: t('simpleLegend'), color: '#9aa89c', values: simple.points.map((point) => point.ending) }, { name: t('compoundLegend'), color: '#3e7053', values: compound.points.map((point) => point.ending) }] : [{ name: t('balance'), color: '#3e7053', values: result.points.map((point) => point.ending) }];
-  const max = Math.max(...series.flatMap((line) => line.values), 1), min = Math.min(...series.flatMap((line) => line.values), 0), count = Math.max(...series.map((line) => line.values.length), 1), x = (i) => pad.left + (i / Math.max(count - 1, 1)) * (w - pad.left - pad.right), y = (value) => pad.top + (1 - (value - min) / Math.max(max - min, 1)) * (h - pad.top - pad.bottom); ctx.clearRect(0, 0, w, h); ctx.font = compact ? '10px Inter, sans-serif' : '11px Inter, sans-serif'; ctx.fillStyle = '#89958d'; ctx.strokeStyle = '#e1e7e1'; ctx.lineWidth = 1;
-  const tickCount = compact ? 3 : 5; for (let i = 0; i < tickCount; i += 1) { const value = min + (max - min) * (1 - i / (tickCount - 1)), gy = pad.top + i * ((h - pad.top - pad.bottom) / (tickCount - 1)); ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(w - pad.right, gy); ctx.stroke(); ctx.fillText(formatAxisCurrency(value, compact), 2, gy + 3); } ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, h - pad.bottom); ctx.lineTo(w - pad.right, h - pad.bottom); ctx.stroke(); const labelStep = compact ? Math.max(1, Math.ceil((count - 1) / 3)) : Math.max(1, Math.floor(count / 5)); for (let i = 0; i < count; i += labelStep) ctx.fillText(`${input.timeUnit === 'months' ? t('month') : t('year')} ${i}`, Math.max(0, x(i) - (compact ? 9 : 16)), h - 5);
-  series.forEach((line) => { ctx.beginPath(); line.values.forEach((value, i) => i === 0 ? ctx.moveTo(x(i), y(value)) : ctx.lineTo(x(i), y(value))); ctx.strokeStyle = line.color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke(); line.values.forEach((value, i) => { ctx.beginPath(); ctx.arc(x(i), y(value), 3, 0, Math.PI * 2); ctx.fillStyle = line.color; ctx.fill(); }); }); $('#chart-x-label').textContent = input.timeUnit === 'months' ? t('months') : t('years'); $('#chart-y-label').textContent = view === 'interest' ? t('earned') : t('balance'); $('#chart-legend').innerHTML = series.map((line) => `<span class="inline-flex items-center gap-2"><i class="h-2 w-2 rounded-full" style="background:${line.color}"></i>${line.name}</span>`).join('');
+function readInput() {
+    const principal = Number($('#principal').value);
+    const rate = Number($('#rate').value) / 100;
+    const rawTime = Number($('#time').value);
+    const timeUnit = $('#time-unit').value;
+    return {
+        principal,
+        rate,
+        time: timeUnit === 'months' ? rawTime / 12 : rawTime,
+        timeUnit,
+        frequency: Number($('#frequency').value),
+    };
 }
-function updateTooltip(event) { const canvas = $('#growth-chart'), rect = canvas.getBoundingClientRect(), input = currentInput, result = currentCalculation, count = result.points.length, compact = window.innerWidth <= 640, plotLeft = compact ? 40 : 58, plotWidth = Math.max(rect.width - plotLeft - (compact ? 6 : 16), 1), index = Math.max(0, Math.min(count - 1, Math.round(((event.clientX - rect.left - plotLeft) / plotWidth) * (count - 1)))), point = result.points[index], tooltip = $('#chart-tooltip'); if (!point) return; const label = `${input.timeUnit === 'months' ? t('month') : t('year')} ${point.period}`, view = $('#chart-view').value; if (view === 'comparison') { const simple = calculate(input, false).points[index]; const compound = calculate(input, true).points[index]; tooltip.innerHTML = `<strong>${label}</strong><div class="mt-2">${t('simpleLegend')}<br><b>${formatCurrency(simple.ending)}</b></div><div class="mt-1">${t('compoundLegend')}<br><b>${formatCurrency(compound.ending)}</b></div>`; } else { tooltip.innerHTML = `<strong>${label}</strong><div class="mt-2">${t('tooltipBalance')}<br><b>${formatCurrency(point.ending)}</b></div><div class="mt-1">${t('tooltipInterest')}<br><b>${formatCurrency(point.ending - input.principal)}</b></div>`; } const tooltipWidth = compact ? Math.min(140, rect.width - 18) : 158, left = Math.max(tooltipWidth / 2 + 5, Math.min(rect.width - tooltipWidth / 2 - 5, plotLeft + (index / Math.max(count - 1, 1)) * plotWidth)), chartHeight = window.innerWidth <= 360 ? 150 : window.innerWidth <= 400 ? 160 : compact ? 170 : window.innerWidth <= 1024 ? 280 : 300; tooltip.style.left = `${left}px`; tooltip.style.top = `${Math.max(28, Math.min(chartHeight - 14, 10 + (1 - point.ending / Math.max(result.finalAmount, 1)) * (chartHeight - 28)))}px`; tooltip.classList.add('visible'); }
-function updateTable(points, input) { const label = input.timeUnit === 'months' ? t('month') : t('year'); $('#growth-table').innerHTML = points.map((point) => `<tr><td class="py-4 font-medium text-[#4f5b54]">${label} ${point.period}</td><td class="py-4 text-right text-[#65706a]">${formatCurrency(point.starting)}</td><td class="py-4 text-right font-medium text-[#3e7053]">+${formatCurrency(point.interest)}</td><td class="py-4 text-right font-semibold text-[#18201c]">${formatCurrency(point.ending)}</td></tr>`).join(''); $('#table-summary').textContent = `${points.length - 1} ${t('periods')}`; }
-function render() { const input = readInput(); const hasValues = ['principal', 'rate', 'time'].every((id) => ($(id === 'principal' ? '#principal' : id === 'rate' ? '#rate' : '#time')).value.trim() !== ''); const invalid = [input.principal, input.rate, input.time].some((value) => value < 0); $('#results-card').classList.toggle('hidden', !hasValues || invalid); $('#secondary-results').classList.toggle('hidden', !hasValues || invalid); $('#growth-breakdown').classList.toggle('hidden', !hasValues || invalid); if (!hasValues) { setText('#form-status', t('enterValues')); return; } if (invalid) { setText('#form-status', t('invalid')); return; } setText('#form-status', t('hint')); currentInput = input; currentCalculation = calculate(input, mode === 'compound'); $('#future-value').textContent = formatCurrency(currentCalculation.finalAmount); $('#interest-earned').textContent = `+${formatCurrency(currentCalculation.interest)}`; $('#growth-rate').textContent = formatPercent(currentCalculation.growth); $('#initial-display').textContent = formatCurrency(input.principal); updateTable(currentCalculation.points, input); drawChart(input, currentCalculation); }
-function setMode(next) { mode = next; document.querySelectorAll('.mode-tab').forEach((button) => { const active = button.dataset.mode === mode; button.setAttribute('aria-pressed', String(active)); button.className = `mode-tab rounded-full px-5 py-2.5 text-sm font-semibold transition ${active ? 'bg-[#18201c] text-white' : 'text-[#65706a] hover:text-[#18201c]'}`; }); $('#frequency-field').classList.toggle('hidden', mode === 'simple'); $('#formula').innerHTML = mode === 'simple' ? 'I = P × r × t<br />A = P(1 + rt)' : 'A = P(1 + r/n)<sup>nt</sup><br />I = A − P'; $('#n-definition').classList.toggle('hidden', mode === 'simple'); render(); }
-applyTranslations(); document.querySelectorAll('.mode-tab').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode))); document.querySelectorAll('#investment-form input, #investment-form select, #chart-view').forEach((field) => field.addEventListener('input', render)); $('#growth-chart').addEventListener('pointermove', updateTooltip); $('#growth-chart').addEventListener('pointerdown', updateTooltip); $('#growth-chart').addEventListener('pointerleave', () => $('#chart-tooltip').classList.remove('visible')); window.addEventListener('resize', render); setMode('simple');
+function periodCount(input) {
+    return Math.max(1, Math.ceil(input.timeUnit === 'months' ? input.time * 12 : input.time));
+}
+function calculate(input, compound) {
+    const count = periodCount(input);
+    const points = [
+        { period: 0, starting: input.principal, interest: 0, ending: input.principal },
+    ];
+    for (let period = 1; period <= count; period += 1) {
+        const years = input.timeUnit === 'months' ? period / 12 : period;
+        const elapsed = Math.min(years, input.time);
+        const ending = compound
+            ? input.principal *
+                Math.pow(1 + input.rate / input.frequency, input.frequency * elapsed)
+            : input.principal * (1 + input.rate * elapsed);
+        const starting = points[period - 1].ending;
+        points.push({ period, starting, interest: ending - starting, ending });
+    }
+    const finalAmount = compound
+        ? input.principal *
+            Math.pow(1 + input.rate / input.frequency, input.frequency * input.time)
+        : input.principal * (1 + input.rate * input.time);
+    return {
+        finalAmount,
+        interest: finalAmount - input.principal,
+        growth: input.principal
+            ? (finalAmount / input.principal - 1) * 100
+            : 0,
+        points,
+    };
+}
+function formatCurrency(value) {
+    return money.format(Number.isFinite(value) ? value : 0);
+}
+function formatAxisCurrency(value, compact) {
+    if (!compact)
+        return formatCurrency(value);
+    const absolute = Math.abs(value);
+    if (absolute >= 1_000_000) {
+        return `${value < 0 ? '-' : ''}${(absolute / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    }
+    if (absolute >= 1_000) {
+        return `${value < 0 ? '-' : ''}${(absolute / 1_000).toFixed(1).replace('.0', '')}K`;
+    }
+    return formatCurrency(value).replace(/\.00(?=\D|$)/, '');
+}
+function formatPercent(value) {
+    return `${value >= 0 ? '+' : ''}${percent.format(value)}%`;
+}
+function getChartSeries(input, result, view) {
+    if (view === 'interest') {
+        return [
+            {
+                name: t('earned'),
+                color: '#3e7053',
+                values: result.points.map((point) => point.ending - input.principal),
+            },
+        ];
+    }
+    if (view === 'comparison') {
+        return [
+            {
+                name: t('simpleLegend'),
+                color: '#9aa89c',
+                values: calculate(input, false).points.map((point) => point.ending),
+            },
+            {
+                name: t('compoundLegend'),
+                color: '#3e7053',
+                values: calculate(input, true).points.map((point) => point.ending),
+            },
+        ];
+    }
+    return [
+        {
+            name: t('balance'),
+            color: '#3e7053',
+            values: result.points.map((point) => point.ending),
+        },
+    ];
+}
+function drawChart(input, result, animate = true) {
+    const canvas = $('#growth-chart');
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width)
+        return;
+    const compact = window.innerWidth <= 640;
+    const height = compact
+        ? window.innerWidth <= 360
+            ? 150
+            : window.innerWidth <= 400
+                ? 160
+                : 178
+        : window.innerWidth <= 1024
+            ? 260
+            : 300;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.height = `${height}px`;
+    const context = canvas.getContext('2d');
+    if (!context)
+        return;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const width = rect.width;
+    const padding = compact
+        ? { left: 48, right: 12, top: 12, bottom: 28 }
+        : { left: 70, right: 20, top: 18, bottom: 36 };
+    const view = $('#chart-view').value;
+    const chartType = $('#chart-type').value;
+    const series = getChartSeries(input, result, view);
+    const values = series.flatMap((line) => line.values);
+    const maximum = Math.max(...values, 1);
+    const minimum = Math.min(...values, 0);
+    const count = Math.max(...series.map((line) => line.values.length), 1);
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    const x = (index) => padding.left + (index / Math.max(count - 1, 1)) * plotWidth;
+    const y = (value) => padding.top +
+        (1 - (value - minimum) / Math.max(maximum - minimum, 1)) * plotHeight;
+    const draw = (progress) => {
+        context.clearRect(0, 0, width, height);
+        context.font = compact ? '10px Inter, sans-serif' : '11px Inter, sans-serif';
+        context.fillStyle = '#89958d';
+        context.strokeStyle = '#e5eae5';
+        context.lineWidth = 1;
+        const tickCount = compact ? 3 : 5;
+        for (let index = 0; index < tickCount; index += 1) {
+            const ratio = index / (tickCount - 1);
+            const value = maximum - (maximum - minimum) * ratio;
+            const gridY = padding.top + ratio * plotHeight;
+            context.beginPath();
+            context.moveTo(padding.left, gridY);
+            context.lineTo(width - padding.right, gridY);
+            context.stroke();
+            context.fillText(formatAxisCurrency(value, compact), 2, gridY + 3);
+        }
+        const labelCount = Math.min(count, compact ? 4 : 6);
+        for (let tick = 0; tick < labelCount; tick += 1) {
+            const index = labelCount === 1
+                ? 0
+                : Math.round((tick / (labelCount - 1)) * (count - 1));
+            const label = `${input.timeUnit === 'months' ? t('month') : t('year')} ${index}`;
+            context.textAlign =
+                tick === 0 ? 'left' : tick === labelCount - 1 ? 'right' : 'center';
+            context.fillText(label, x(index), height - 7);
+        }
+        context.textAlign = 'start';
+        context.save();
+        context.beginPath();
+        context.rect(padding.left, padding.top, plotWidth * progress, plotHeight);
+        context.clip();
+        if (chartType === 'bar') {
+            const groupWidth = plotWidth / count;
+            const gap = Math.min(5, groupWidth * 0.18);
+            const barWidth = Math.max(1, (groupWidth - gap * 2) / series.length) * 0.82;
+            series.forEach((line, seriesIndex) => {
+                line.values.forEach((value, index) => {
+                    const center = x(index);
+                    const offset = (seriesIndex - (series.length - 1) / 2) * (barWidth + 2);
+                    const barTop = y(value);
+                    context.fillStyle = line.color;
+                    context.beginPath();
+                    context.roundRect(center + offset - barWidth / 2, barTop, barWidth, Math.max(0, y(minimum) - barTop), [3, 3, 0, 0]);
+                    context.fill();
+                });
+            });
+        }
+        else {
+            series.forEach((line) => {
+                context.beginPath();
+                line.values.forEach((value, index) => {
+                    if (index === 0)
+                        context.moveTo(x(index), y(value));
+                    else
+                        context.lineTo(x(index), y(value));
+                });
+                if (chartType === 'area') {
+                    context.lineTo(x(line.values.length - 1), y(minimum));
+                    context.lineTo(x(0), y(minimum));
+                    context.closePath();
+                    const gradient = context.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+                    gradient.addColorStop(0, `${line.color}38`);
+                    gradient.addColorStop(1, `${line.color}04`);
+                    context.fillStyle = gradient;
+                    context.fill();
+                    context.beginPath();
+                    line.values.forEach((value, index) => {
+                        if (index === 0)
+                            context.moveTo(x(index), y(value));
+                        else
+                            context.lineTo(x(index), y(value));
+                    });
+                }
+                context.strokeStyle = line.color;
+                context.lineWidth = compact ? 2 : 2.5;
+                context.lineJoin = 'round';
+                context.lineCap = 'round';
+                context.stroke();
+            });
+        }
+        const hoverPeriod = chartHoverPeriod;
+        if (hoverPeriod !== null && hoverPeriod < count) {
+            const hoverX = x(hoverPeriod);
+            context.setLineDash([3, 4]);
+            context.strokeStyle = '#a8b5aa';
+            context.beginPath();
+            context.moveTo(hoverX, padding.top);
+            context.lineTo(hoverX, height - padding.bottom);
+            context.stroke();
+            context.setLineDash([]);
+            series.forEach((line) => {
+                const value = line.values[hoverPeriod];
+                if (value === undefined)
+                    return;
+                context.beginPath();
+                context.arc(hoverX, y(value), compact ? 4 : 5, 0, Math.PI * 2);
+                context.fillStyle = '#fff';
+                context.fill();
+                context.lineWidth = 2;
+                context.strokeStyle = line.color;
+                context.stroke();
+            });
+        }
+        context.restore();
+    };
+    if (chartAnimationFrame)
+        window.cancelAnimationFrame(chartAnimationFrame);
+    if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        draw(1);
+    }
+    else {
+        const startedAt = performance.now();
+        const duration = 520;
+        const frame = (now) => {
+            const elapsed = Math.min(1, (now - startedAt) / duration);
+            const eased = 1 - (1 - elapsed) ** 3;
+            draw(eased);
+            if (elapsed < 1) {
+                chartAnimationFrame = window.requestAnimationFrame(frame);
+            }
+            else {
+                chartAnimationFrame = 0;
+            }
+        };
+        chartAnimationFrame = window.requestAnimationFrame(frame);
+    }
+    setText('#chart-x-label', input.timeUnit === 'months' ? t('months') : t('years'));
+    setText('#chart-y-label', view === 'interest' ? t('earned') : t('balanceAxis'));
+    $('#chart-legend').innerHTML = series
+        .map((line) => `<span class="inline-flex items-center gap-2"><i class="h-2 w-2 rounded-full" style="background:${line.color}"></i>${line.name}</span>`)
+        .join('');
+}
+function updateTooltip(event) {
+    const canvas = $('#growth-chart');
+    const rect = canvas.getBoundingClientRect();
+    const input = currentInput;
+    const result = currentCalculation;
+    if (!input || !result)
+        return;
+    const compact = window.innerWidth <= 640;
+    const plotLeft = compact ? 48 : 70;
+    const plotRight = compact ? 12 : 20;
+    const plotWidth = Math.max(rect.width - plotLeft - plotRight, 1);
+    const count = result.points.length;
+    const index = Math.max(0, Math.min(count - 1, Math.round(((event.clientX - rect.left - plotLeft) / plotWidth) * (count - 1))));
+    const point = result.points[index];
+    if (!point)
+        return;
+    chartHoverPeriod = index;
+    drawChart(input, result, false);
+    const label = `${input.timeUnit === 'months' ? t('month') : t('year')} ${point.period}`;
+    const view = $('#chart-view').value;
+    const tooltip = $('#chart-tooltip');
+    if (view === 'comparison') {
+        const simple = calculate(input, false).points[index];
+        const compound = calculate(input, true).points[index];
+        if (!simple || !compound)
+            return;
+        tooltip.innerHTML = `<strong>${label}</strong><div class="mt-2">${t('simpleLegend')}<br><b>${formatCurrency(simple.ending)}</b></div><div class="mt-1">${t('compoundLegend')}<br><b>${formatCurrency(compound.ending)}</b></div>`;
+    }
+    else {
+        tooltip.innerHTML = `<strong>${label}</strong><div class="mt-2">${t('tooltipBalance')}<br><b>${formatCurrency(point.ending)}</b></div><div class="mt-1">${t('tooltipInterest')}<br><b>${formatCurrency(point.ending - input.principal)}</b></div>`;
+    }
+    const tooltipWidth = compact ? Math.min(150, rect.width - 18) : 166;
+    const left = Math.max(tooltipWidth / 2 + 5, Math.min(rect.width - tooltipWidth / 2 - 5, plotLeft + (index / Math.max(count - 1, 1)) * plotWidth));
+    const chartHeight = canvas.getBoundingClientRect().height;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.max(28, Math.min(chartHeight - 14, 24))}px`;
+    tooltip.classList.add('visible');
+}
+function updateTable(points, input) {
+    const label = input.timeUnit === 'months' ? t('month') : t('year');
+    $('#growth-table').innerHTML = points
+        .map((point) => `<tr><td class="py-4 font-medium text-[#4f5b54]">${label} ${point.period}</td><td class="py-4 text-right text-[#65706a]">${formatCurrency(point.starting)}</td><td class="py-4 text-right font-medium text-[#3e7053]">+${formatCurrency(point.interest)}</td><td class="py-4 text-right font-semibold text-[#18201c]">${formatCurrency(point.ending)}</td></tr>`)
+        .join('');
+    setText('#table-summary', `${points.length - 1} ${t('periods')}`);
+}
+function render() {
+    const input = readInput();
+    const requiredInputs = ['#principal', '#rate', '#time'].map((selector) => $(selector).value.trim());
+    const hasValues = requiredInputs.every((value) => value !== '');
+    const invalid = [input.principal, input.rate, input.time, input.frequency].some((value) => !Number.isFinite(value) || value < 0);
+    const hideResults = !hasValues || invalid;
+    $('#results-card').classList.toggle('hidden', hideResults);
+    $('#secondary-results').classList.toggle('hidden', hideResults);
+    $('#growth-breakdown').classList.toggle('hidden', hideResults);
+    if (!hasValues) {
+        setText('#form-status', t('enterValues'));
+        return;
+    }
+    if (invalid) {
+        setText('#form-status', t('invalid'));
+        return;
+    }
+    setText('#form-status', t('hint'));
+    currentInput = input;
+    currentCalculation = calculate(input, mode === 'compound');
+    chartHoverPeriod = null;
+    $('#chart-tooltip').classList.remove('visible');
+    $('#future-value').textContent = formatCurrency(currentCalculation.finalAmount);
+    $('#interest-earned').textContent = `+${formatCurrency(currentCalculation.interest)}`;
+    $('#growth-rate').textContent = formatPercent(currentCalculation.growth);
+    $('#initial-display').textContent = formatCurrency(input.principal);
+    document.querySelectorAll('.metric-value').forEach((metric) => {
+        metric.classList.add('is-updating');
+        window.setTimeout(() => metric.classList.remove('is-updating'), 180);
+    });
+    updateTable(currentCalculation.points, input);
+    drawChart(input, currentCalculation);
+}
+function setMode(next) {
+    mode = next;
+    document.querySelectorAll('.mode-tab').forEach((button) => {
+        const active = button.dataset.mode === mode;
+        button.setAttribute('aria-pressed', String(active));
+        button.className = `mode-tab rounded-full px-5 py-2.5 text-sm font-semibold transition ${active ? 'bg-[#18201c] text-white' : 'text-[#65706a] hover:text-[#18201c]'}`;
+    });
+    $('#frequency-field').classList.toggle('hidden', mode === 'simple');
+    $('#formula').innerHTML =
+        mode === 'simple'
+            ? 'I = P × r × t<br />A = P(1 + rt)'
+            : 'A = P(1 + r/n)<sup>nt</sup><br />I = A − P';
+    $('#n-definition').classList.toggle('hidden', mode === 'simple');
+    render();
+}
+function handleChartPointerLeave() {
+    chartHoverPeriod = null;
+    $('#chart-tooltip').classList.remove('visible');
+    if (currentInput && currentCalculation) {
+        drawChart(currentInput, currentCalculation, false);
+    }
+}
+applyTranslations();
+document.querySelectorAll('.mode-tab').forEach((button) => {
+    button.addEventListener('click', () => setMode(button.dataset.mode));
+});
+document
+    .querySelectorAll('#investment-form input, #investment-form select, #chart-view, #chart-type')
+    .forEach((field) => field.addEventListener('input', render));
+$('#growth-chart').addEventListener('pointermove', updateTooltip);
+$('#growth-chart').addEventListener('pointerdown', updateTooltip);
+$('#growth-chart').addEventListener('pointerleave', handleChartPointerLeave);
+const chartObserver = new ResizeObserver(() => {
+    if (currentInput && currentCalculation) {
+        drawChart(currentInput, currentCalculation, false);
+    }
+});
+chartObserver.observe($('.chart-shell'));
+window.addEventListener('resize', () => {
+    if (currentInput && currentCalculation) {
+        drawChart(currentInput, currentCalculation, false);
+    }
+});
+setMode('simple');
