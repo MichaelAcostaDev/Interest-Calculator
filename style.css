@@ -113,6 +113,16 @@ button:focus-visible {
   min-width: 0;
   isolation: isolate;
 }
+
+.open-source-label-es,
+html:lang(es) .open-source-label-en {
+  display: none;
+}
+
+html:lang(es) .open-source-label-es {
+  display: inline;
+}
+
 .intro-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
