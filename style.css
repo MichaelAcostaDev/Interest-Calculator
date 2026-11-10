@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light;
+}
+body {
+  background: #f6f7f5;
+  color: #18201c;
+  overflow-x: hidden;
+}
+input,
+select,
+button {
+  font: inherit;
+}
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 3px solid rgba(62, 112, 83, 0.18);
+  outline-offset: 2px;
+}
+.canvas-wrap canvas {
+  width: 100%;
+  height: 300px;
+  display: block;
+}
+.metric-value {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.metric-value.is-updating {
+  opacity: 0.45;
+  transform: translateY(3px);
+}
+.soft-rule {
+  border-color: #dde3dd;
+}
+.canvas-wrap {
+  background: #fbfcfb;
+}
+.chart-tooltip {
+  pointer-events: none;
+  position: absolute;
+  z-index: 5;
+  min-width: 158px;
+  transform: translate(-50%, calc(-100% - 14px));
+  border: 1px solid #d9e0d9;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.97);
+  padding: 10px 12px;
+  box-shadow: 0 12px 30px rgba(24, 32, 28, 0.12);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.chart-tooltip.visible {
+  opacity: 1;
+}
+.chart-shell {
+  position: relative;
+  min-width: 0;
+}
+.intro-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 360px) {
+  .intro-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-tooltip {
+    min-width: 124px;
+    max-width: calc(100vw - 28px);
+    padding: 8px 9px;
+  }
+  .canvas-wrap canvas {
+    height: 150px;
+  }
+}
+@media (min-width: 361px) and (max-width: 400px) {
+  .intro-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-tooltip {
+    min-width: 128px;
+    max-width: calc(100vw - 28px);
+    padding: 8px 9px;
+  }
+  .canvas-wrap canvas {
+    height: 160px;
+  }
+}
+@media (min-width: 401px) and (max-width: 640px) {
+  .intro-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-tooltip {
+    min-width: 132px;
+    max-width: calc(100vw - 32px);
+    padding: 8px 10px;
+  }
+  .canvas-wrap canvas {
+    height: 170px;
+  }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  .canvas-wrap canvas {
+    height: 280px;
+  }
+}
